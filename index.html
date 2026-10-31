@@ -4113,7 +4113,11 @@ function obMostraSceltaUscita(){
   };
 }
 function logout(){obMostraSceltaUscita();}
-function obCambiaAccount(){obMostraSceltaUscita();const screen=document.getElementById("obAccountExitScreen");if(screen){const h=screen.querySelector("h2");if(h)h.textContent="Cambia account";}}
+async function obCambiaAccount(){
+  const ok=await obConfermaCestino({titolo:"Cambia account",testo:"Vuoi disconnettere questa email e accedere con un altro account? I dati salvati resteranno disponibili nel rispettivo account.",annulla:"Annulla",conferma:"Cambia account"});
+  if(!ok)return;
+  try{await obEseguiDisconnessioneAccount();}catch(e){if(typeof obAvviso==="function")obAvviso("Impossibile cambiare account: "+(e?.message||e));}
+}
 
 async function avviaMostraApp(sessionOverride=null){
   if(mostraAppPromise)return mostraAppPromise;

@@ -3044,6 +3044,13 @@ function obV34181ChiudiSuccesso(){
  $("obReleaseSuccessModal")?.classList.add("hidden");
 }
 function obV34181MostraSuccessoPostAggiornamento(){
+ // Anteprima esplicita della schermata finale: non installa e non modifica versioni.
+ if(new URLSearchParams(location.search).get("ornialleva_test_update")==="1"){
+  const modal=$("obReleaseSuccessModal");if(!modal||!sessionUser?.id)return;
+  $("obReleaseSuccessSubtitle").textContent="Anteprima aggiornamento · Versione V"+OB_APP_VERSION;
+  obV34181RigheNote("obReleaseSuccessNotes",OB_CURRENT_RELEASE.notes);
+  modal.classList.remove("hidden");return;
+ }
  // Il vecchio pulsante «Aggiorna ora» passa ob_release e ob_refresh alla nuova PWA.
  const p=new URLSearchParams(location.search);
  const version=p.get("ob_release"),ts=Number(p.get("ob_refresh"));

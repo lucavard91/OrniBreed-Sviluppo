@@ -1807,7 +1807,7 @@ html.ob-return-from-admin #obAdminReturnTransition,#obAdminReturnTransition.ob-t
           <div id="profiloAvatarHomeV18" class="v18-avatar"><img class="ob-avatar-default" src="icon-512.png" alt="Profilo"></div>
           <div class="ob-profile-copy">
             <div id="profiloRiepilogoHomeV18" class="small">Gestisci i tuoi dati personali e la foto profilo.</div>
-            <button id="v187ApriProfilo" class="ob-profile-open" type="button">Apri il tuo profilo <span aria-hidden="true">›</span></button>
+            <div class="ob-profile-account-actions" style="display:flex;gap:8px;width:100%;max-width:360px;align-items:stretch"><button id="v187ApriProfilo" class="ob-profile-open" type="button" style="flex:1 1 50%;width:50%;min-width:0;white-space:normal">Apri profilo <span aria-hidden="true">›</span></button><button id="obSwitchAccount" class="ob-profile-open" type="button" style="flex:1 1 50%;width:50%;min-width:0;white-space:normal">Cambia account <span aria-hidden="true">⇄</span></button></div>
           </div>
         </div>
         <div class="ob-profile-brand-scene" aria-hidden="true"></div>
@@ -4080,17 +4080,41 @@ async function aggiornaPassword(){
     setTimeout(()=>{toggle("resetScreen",false);toggle("loginScreen",true);},1500);
   }catch(e){resetMsg(e?.message||e);}
 }
-async function logout(){
-  if(!await obConfermaCestino({titolo:"Uscire da OrniAlleva?",testo:"Vuoi davvero uscire dall’applicazione?",annulla:"Annulla",conferma:"Esci"}))return;
+async function obEseguiDisconnessioneAccount(){
   if(window.__obGuestMode){try{localStorage.removeItem("ob_intro_hide_v1_"+String(sessionUser?.id||"guest"));localStorage.removeItem("ob_mostra_v1_"+String(sessionUser?.id||"")+"_"+String(allevamentoAttivo?.id||"nessuno"));}catch(_){}}
   obSetStaySignedIn(false);
   obV2630AzzeraRuntimeAutenticato();
   try{localStorage.removeItem(chiaveStatoNavigazione());localStorage.setItem("ornibreed_force_home_after_logout","1");}catch(e){}
   window.__MYAGARI_FRESH_LOGIN=false;
-  await sb.auth.signOut();
+  const {error}=await sb.auth.signOut();
+  if(error)throw error;
   try{localStorage.removeItem(chiaveStatoNavigazione());}catch(e){}
   location.reload();
 }
+function obMostraSceltaUscita(){
+  document.getElementById("obAccountExitScreen")?.remove();
+  const screen=document.createElement("div");
+  screen.id="obAccountExitScreen";
+  screen.setAttribute("role","dialog");
+  screen.setAttribute("aria-modal","true");
+  screen.setAttribute("aria-label","Uscita da OrniAlleva");
+  screen.style.cssText="position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;overflow:auto;background:linear-gradient(160deg,#082b20,#17563d);padding:22px;box-sizing:border-box";
+  screen.innerHTML='<div style="background:#fffdf8;border:2px solid #d7ad4b;border-radius:20px;padding:25px 18px;width:100%;max-width:440px;box-sizing:border-box;text-align:center;color:#17432f;box-shadow:0 12px 35px #0004"><div style="font-size:36px">🦜</div><h2 style="color:#17432f;margin:8px 0 12px">Come vuoi uscire?</h2><p style="margin:0 0 20px">Scegli una delle due opzioni.</p><button type="button" data-exit-app style="display:block;width:100%;padding:14px;margin-bottom:12px;border-radius:12px;background:#14563f;color:white;border:2px solid #d7ad4b;font-weight:700">Esci dall’app</button><p style="font-size:12px;margin:0 0 15px">Mantiene l’account collegato. Per chiudere la PWA usa i comandi del telefono.</p><button type="button" data-exit-account style="display:block;width:100%;padding:14px;border-radius:12px;background:#14563f;color:white;border:2px solid #d7ad4b;font-weight:700">Esci dall’account</button><p style="font-size:12px;margin:8px 0 16px">Disconnette questa email per accedere con un’altra.</p><button type="button" data-cancel-exit class="secondary" style="width:100%">Annulla e torna all’app</button></div>';
+  document.body.appendChild(screen);
+  screen.querySelector("[data-cancel-exit]").onclick=()=>screen.remove();
+  screen.querySelector("[data-exit-app]").onclick=()=>{
+    screen.querySelector("div").innerHTML='<div style="font-size:45px">🦜</div><h2 style="color:#17432f">OrniAlleva</h2><p>Puoi chiudere l’app dal telefono. Il tuo account resterà collegato.</p><button type="button" data-return-app style="width:100%;padding:13px;border-radius:12px;background:#14563f;color:white;border:2px solid #d7ad4b">Torna all’app</button>';
+    screen.querySelector("[data-return-app]").onclick=()=>screen.remove();
+  };
+  screen.querySelector("[data-exit-account]").onclick=async()=>{
+    const b=screen.querySelector("[data-exit-account]");
+    b.disabled=true;b.textContent="Disconnessione…";
+    try{await obEseguiDisconnessioneAccount();}catch(e){b.disabled=false;b.textContent="Esci dall’account";if(typeof obAvviso==="function")obAvviso("Impossibile disconnettersi: "+(e?.message||e));}
+  };
+}
+function logout(){obMostraSceltaUscita();}
+function obCambiaAccount(){obMostraSceltaUscita();const screen=document.getElementById("obAccountExitScreen");if(screen){const h=screen.querySelector("h2");if(h)h.textContent="Cambia account";}}
+
 async function avviaMostraApp(sessionOverride=null){
   if(mostraAppPromise)return mostraAppPromise;
   if(sessionOverride?.user){
@@ -9778,6 +9802,7 @@ function v18Init(){
   document.querySelectorAll("[data-v18-premium]").forEach(b=>b.addEventListener("click",()=>{v18ChiudiDrawer();if(b.dataset.v18Premium==="coppie"){apriPagina("coppie");}else{apriPagina("soggetti");obAvviso("Per valutare un soggetto, apri la sua scheda e scegli «Valuta con AI».");}}));
   $("btnFotoProfiloV18")?.addEventListener("click",v18CaricaFotoProfilo);
   $("v187ApriProfilo")?.addEventListener("click",v187ApriProfilo);
+  $("obSwitchAccount")?.addEventListener("click",obCambiaAccount);
   $("v188DrawerProfilo")?.addEventListener("click",()=>{v18ChiudiDrawer();v187ApriProfilo();});
   $("v19DrawerOpenProfile")?.addEventListener("click",()=>{v18ChiudiDrawer();v187ApriProfilo();});
   $("v189DrawerMateriale")?.addEventListener("click",()=>{v18ChiudiDrawer();apriPagina("materiale_allevamento");});
